@@ -4,7 +4,7 @@ use game_state::GameState;
 use std::io::prelude::*;
 use std::net::TcpStream;
 
-const IP_ADDRESS: &str = "127.0.0.1";
+const IP_ADDRESS: &str = "127.0.0.1:25565";
 
 fn main() {
     // let mut stream = TcpStream::connect("127.0.0.1:25565")?;
@@ -13,10 +13,15 @@ fn main() {
     println!("{:?}", &packet);
     process_packet(packet);
 
-    // let char_guess = b'a';
-    // guess_letter(&mut stream, char_guess);
+    // let char_guess = b'e';
+    // guess_letter(char_guess);
 
-    // guess_word(&mut stream, "asdf".to_string());
+    guess_word("ballet".to_string());
+
+    // temp code, a mess
+    let packet2 = request_game_update();
+    println!("{:?}", &packet2);
+    process_packet(packet2);
 
 }
 
@@ -46,7 +51,8 @@ fn guess_letter(guess: u8) {
     };
 
     let mut out = [0; 16];
-    out[1] = guess;
+    out[0] = 1; // byte 0: 1 (protocol-doc)
+    out[2] = guess; // byte 2: ASCII letter guess
     let _ = stream.write(&out);
 }
 
@@ -60,9 +66,11 @@ fn guess_word(guess: String) {
 
     let guess_bytes = &guess.as_bytes();
     let mut out = [0; 16];
-    // iterate over all bytes in string, replacing bytes 2..n of output packet
+    out[0] = 1;
+    out[1] = 1;
+    // iterate over all bytes in string, replacing bytes 3..n of output packet
     for (i, b) in guess_bytes.iter().take(15).enumerate() {
-        out[i+1] = *b;
+        out[i+2] = *b;
     }
     let _ = stream.write(&out);
 }
