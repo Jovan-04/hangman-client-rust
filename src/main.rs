@@ -37,15 +37,27 @@ fn request_game_update() -> [u8; 40] {
     buffer
 }
 
-// TODO: refactor to remove stream inputs
-//                                  u8 because we only support ASCII chars
-fn guess_letter(stream: &mut TcpStream, guess: u8) {
+//              u8 because we only support ASCII chars
+fn guess_letter(guess: u8) {
+    let stream = TcpStream::connect(&IP_ADDRESS);
+    let mut stream = match stream {
+        Ok(s) => s,
+        Err(e) => panic!("{}", e),
+    };
+
     let mut out = [0; 16];
     out[1] = guess;
     let _ = stream.write(&out);
 }
 
-fn guess_word(stream: &mut TcpStream, guess: String) {
+// TODO: ensure string is only ASCII - do this in the REPL
+fn guess_word(guess: String) {
+    let stream = TcpStream::connect(&IP_ADDRESS);
+    let mut stream = match stream {
+        Ok(s) => s,
+        Err(e) => panic!("{}", e),
+    };
+
     let guess_bytes = &guess.as_bytes();
     let mut out = [0; 16];
     // iterate over all bytes in string, replacing bytes 2..n of output packet
@@ -59,6 +71,7 @@ fn clear_output() { // this only clears the text currently on screen, not any hi
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
 
+// prints the game state out to the terminal
 fn render_game_state(gs: GameState) {
     let mut rows: Vec<String> = Vec::new();
 
@@ -91,6 +104,7 @@ fn render_game_state(gs: GameState) {
     
 }
 
+// helper function for render_game_state()
 fn stringify_game_state_chars(word_progress: &Vec<char>) -> String {
     let mut string = String::new();
 
@@ -102,6 +116,7 @@ fn stringify_game_state_chars(word_progress: &Vec<char>) -> String {
     string
 }
 
+// this doesn't return a GameState object...should we make it that way?
 fn process_packet(packet: [u8; 40]) {
     // new GameState object from our packet
     let gs = GameState::deserialize(packet);
