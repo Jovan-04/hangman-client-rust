@@ -2,28 +2,44 @@ mod game_state;
 use game_state::GameState;
 
 use std::io::prelude::*;
+use std::io;
 use std::net::TcpStream;
 
 const IP_ADDRESS: &str = "127.0.0.1:25565";
 
 fn main() {
-    // let mut stream = TcpStream::connect("127.0.0.1:25565")?;
+    process_packet(request_game_update());
+    // main game loop
+    loop {
+        let mut guess = String::new();
 
-    let packet = request_game_update();
-    println!("{:?}", &packet);
-    process_packet(packet);
+        // prompt user for input
+        io::stdin()
+        .read_line(&mut guess)
+        .expect("Failed to read line");
 
-    // let char_guess = b'e';
-    // guess_letter(char_guess);
+        println!("{}", guess);
 
-    guess_word("ballet".to_string());
+        // trim whitespace and convert to uppercase
+        guess = guess.trim().to_string().to_ascii_uppercase();
 
-    // temp code, a mess
-    let packet2 = request_game_update();
-    println!("{:?}", &packet2);
-    process_packet(packet2);
+        // ensure guesses are ASCII
+        if !guess.chars().all(|c| c.is_ascii()) {
+            println!("Guess must contain only ASCII characters");
+            continue; // restart loop to prompt for input again
+        }
 
+        // single character, submit a letter guess
+        if guess.len() == 1 {
+            guess_letter(guess.as_bytes()[0]);
+        } else { // otherwise, guess the whole word
+            guess_word(guess);
+        }
+        // request a game update after the guess is submitted
+        process_packet(request_game_update());
+    }
 }
+
 
 // send a request_game_update packet and return the byte-array response
 fn request_game_update() -> [u8; 40] {
@@ -56,7 +72,6 @@ fn guess_letter(guess: u8) {
     let _ = stream.write(&out);
 }
 
-// TODO: ensure string is only ASCII - do this in the REPL
 fn guess_word(guess: String) {
     let stream = TcpStream::connect(&IP_ADDRESS);
     let mut stream = match stream {
@@ -104,7 +119,6 @@ fn render_game_state(gs: GameState) {
     rows.push(format!     ("Letters Guessed: {}", stringify_game_state_chars(&gs.letters_guessed)));
     rows.push(format!     ("______________________________"));
     rows.push(String::from(" "));
-    rows.push(String::from("> "));
 
     for row in rows {
         println!("{}", row);
