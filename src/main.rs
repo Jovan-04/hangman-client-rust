@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::io;
 use std::net::TcpStream;
 
-const IP_ADDRESS: &str = "127.0.0.1:25565";
+const IP_ADDRESS: &str = "jovan04.com:2556";
 
 fn main() {
     process_packet(request_game_update());
@@ -31,12 +31,20 @@ fn main() {
 
         // single character, submit a letter guess
         if guess.len() == 1 {
-            guess_letter(guess.as_bytes()[0]);
+            if guess.as_bytes()[0] == b'.' {
+                // only game update on a period
+                // request is handled after conditional
+
+            } else {
+                //guess any other character
+                guess_letter(guess.as_bytes()[0]);
+            }
         } else { // otherwise, guess the whole word
             guess_word(guess);
         }
         // request a game update after the guess is submitted
         process_packet(request_game_update());
+
     }
 }
 
