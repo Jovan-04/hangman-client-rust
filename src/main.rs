@@ -4,11 +4,27 @@ use game_state::GameState;
 use std::io::prelude::*;
 use std::io;
 use std::net::TcpStream;
+use std::time::Duration;
+use async_std::task;
 
-const IP_ADDRESS: &str = "jovan04.com:2556";
+const IP_ADDRESS: &str = "127.0.0.1:25565";
 
 fn main() {
+    task::block_on(async_main());
+}
+
+async fn async_main() {
+    clear_output();
+    
+    // move cursor back down to the bottom
+    print!("{esc}[20;0H", esc = 27 as char);
+    io::stdout().flush().unwrap();
+    
     process_packet(request_game_update());
+
+    // asynchronous requests for game updates
+    task::spawn(async_update());
+
     // main game loop
     loop {
         let mut guess = String::new();
@@ -18,7 +34,10 @@ fn main() {
         .read_line(&mut guess)
         .expect("Failed to read line");
 
-        println!("{}", guess);
+        // println!("{}", guess);
+        print!("{esc}[A", esc = 27 as char);
+        print!("{esc}[2K", esc = 27 as char);
+        io::stdout().flush().unwrap();
 
         // trim whitespace and convert to uppercase
         guess = guess.trim().to_string().to_ascii_uppercase();
@@ -48,6 +67,12 @@ fn main() {
     }
 }
 
+async fn async_update() {
+    loop {
+        process_packet(request_game_update());
+        task::sleep(Duration::from_millis(500)).await;   
+    }
+}
 
 // send a request_game_update packet and return the byte-array response
 fn request_game_update() -> [u8; 40] {
@@ -104,11 +129,16 @@ fn clear_output() { // this only clears the text currently on screen, not any hi
 
 // prints the game state out to the terminal
 fn render_game_state(gs: GameState) {
+    // save cursor position
+    print!("{esc}[s", esc = 27 as char);
+    // move cursor to row 1, column 1
+    print!("{esc}[1;1H", esc = 27 as char);
+
     let mut rows: Vec<String> = Vec::new();
 
     let inc = gs.incorrect_guesses;
     rows.push(String::from("HANGMAN by Evan Scherrer & Blythe Kelly"));
-    rows.push(format!     ("Game Result: {:?} ", gs.game_result));
+    rows.push(format!     ("Game Result: {:?}          ", gs.game_result)); // pad with extra spaces to overwrite all of "running"
     rows.push(format!     ("Incorrect Guesses: {} / 6", gs.incorrect_guesses));
     rows.push(String::from(" "));
     rows.push(String::from(" |—————|"));
@@ -126,11 +156,16 @@ fn render_game_state(gs: GameState) {
     rows.push(String::from(" "));
     rows.push(format!     ("Letters Guessed: {}", stringify_game_state_chars(&gs.letters_guessed)));
     rows.push(format!     ("______________________________"));
-    rows.push(String::from(" "));
+    rows.push(String::from(""));
 
+    // print out the updated output
     for row in rows {
         println!("{}", row);
     }
+
+    // move cursor back down to the bottom
+    print!("{esc}[u", esc = 27 as char);
+    io::stdout().flush().unwrap();
     
 }
 
@@ -151,9 +186,6 @@ fn process_packet(packet: [u8; 40]) {
     // new GameState object from our packet
     let gs = GameState::deserialize(packet);
 
-    // clear terminal
-    clear_output();
-    
     // render new output
     render_game_state(gs);
 
