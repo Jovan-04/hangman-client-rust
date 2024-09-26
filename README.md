@@ -9,7 +9,7 @@ This is my first project in Rust, the client for a networked implementation of t
 2. Clone this repo with `git clone https://github.com/Jovan-04/hangman-client-rust.git`  
 3. Run `cd hangman-server-rust` to navigate to the project's root directory  
 4. By default, the client connects to `127.0.0.1:25565`; you can change that by editing the `IP_ADDRESS` string in `src/main.rs:10`
-* You can also build this to a binary executable for your OS using `cargo build`. The output file will be `./target/debug/server`.
+* You can also build this to a binary executable for your OS using `cargo build`. The output file will be `./target/debug/client`.
 
 ### Usage
 1. Run the project's source code by navigating to its root directory and running `cargo run` in the terminal  
